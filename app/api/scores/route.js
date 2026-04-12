@@ -1,8 +1,26 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Create a fresh client per request to avoid stale connections
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!url || !key) return null;
+  
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
 
 export async function POST(req) {
   try {
+    const supabase = getSupabase();
+    
     if (!supabase) {
       return NextResponse.json({ error: 'Supabase Database is not configured. Please add the .env.local variables.' }, { status: 500 });
     }
@@ -14,10 +32,16 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Validate: Reject obviously invalid data
+    const validPapers = ['SCQP09', 'MTQP04'];
+    if (!validPapers.includes(paper)) {
+      return NextResponse.json({ error: 'Invalid paper code. Score not saved.' }, { status: 400 });
+    }
+
     // Step 1: Check if an entry already exists for this roll number and paper
     const { data: existingData, error: fetchError } = await supabase
       .from('leaderboard')
-      .select('id')
+      .select('id, score')
       .eq('rollNo', rollNo)
       .eq('paper', paper)
       .single();

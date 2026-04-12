@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { parseResponseSheet } from "../lib/parser";
-import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle } from "lucide-react";
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -18,12 +18,39 @@ const answerKeys = {
   }
 };
 
-const maskRollNo = (rollNo) => {
-  if (!rollNo || rollNo === 'Unknown' || rollNo.length <= 4) return rollNo;
-  const start = rollNo.substring(0, 5);
-  const end = rollNo.substring(rollNo.length - 2);
-  return `${start}***${end}`;
-};
+// ─── Onboarding Tour Steps ──────────────────────────────────────────────────
+const tourSteps = [
+  {
+    icon: <Sparkles className="w-8 h-8" />,
+    title: "Welcome to CUET Ranker 🎓",
+    description: "Your ultimate CUET PG 2026 score calculator & leaderboard. Let's take a quick tour to get you started!",
+    gradient: "from-indigo-500 to-purple-600",
+  },
+  {
+    icon: <Calculator className="w-8 h-8" />,
+    title: "Score Calculator",
+    description: "Paste your Digialm response sheet URL, select your paper, and get your exact score with detailed question-by-question analysis instantly.",
+    gradient: "from-emerald-500 to-teal-600",
+  },
+  {
+    icon: <Trophy className="w-8 h-8" />,
+    title: "Live Leaderboard",
+    description: "See where you rank among all participants. Scores are synced in real-time with global analytics, charts, and percentile breakdowns.",
+    gradient: "from-amber-500 to-orange-600",
+  },
+  {
+    icon: <Shield className="w-8 h-8" />,
+    title: "Privacy Protected",
+    description: "Your identity is fully anonymized on the leaderboard. No names or roll numbers are ever shown — only scores and ranks.",
+    gradient: "from-rose-500 to-pink-600",
+  },
+  {
+    icon: <Upload className="w-8 h-8" />,
+    title: "Contribute Answer Keys",
+    description: "Help the community! Submit answer keys for other subjects so everyone can benefit. Keys are reviewed before being added.",
+    gradient: "from-blue-500 to-cyan-600",
+  },
+];
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -41,6 +68,134 @@ const leaderboardItem = {
   show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
 
+// ─── Onboarding Tour Component ──────────────────────────────────────────────
+function OnboardingTour({ onComplete }) {
+  const [step, setStep] = useState(0);
+  const currentStep = tourSteps[step];
+  const isLast = step === tourSteps.length - 1;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" />
+
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-white/20 rounded-full"
+            initial={{ 
+              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000), 
+              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
+              scale: Math.random() * 0.5 + 0.5
+            }}
+            animate={{ 
+              y: [null, Math.random() * -200 - 50],
+              opacity: [0, 1, 0]
+            }}
+            transition={{ duration: Math.random() * 4 + 3, repeat: Infinity, delay: Math.random() * 2 }}
+          />
+        ))}
+      </div>
+
+      {/* Tour Card */}
+      <motion.div
+        key={step}
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: -30 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="relative z-10 w-full max-w-lg"
+      >
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-white/20 dark:border-slate-800 overflow-hidden">
+          {/* Gradient Header */}
+          <div className={`bg-gradient-to-r ${currentStep.gradient} p-8 pb-12 relative overflow-hidden`}>
+            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(255,255,255,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.3)_1px,transparent_1px)] bg-[size:20px_20px]" />
+            
+            {/* Skip button */}
+            <button
+              onClick={onComplete}
+              className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-bold tracking-wide backdrop-blur-sm transition-all"
+            >
+              Skip Tour <X className="w-3 h-3" />
+            </button>
+
+            <div className="relative z-10 flex flex-col items-center text-center text-white">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.15, stiffness: 400 }}
+                className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl mb-4 ring-4 ring-white/10"
+              >
+                {currentStep.icon}
+              </motion.div>
+              <h2 className="text-2xl font-black tracking-tight">{currentStep.title}</h2>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-8 -mt-4">
+            <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
+              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium text-center">
+                {currentStep.description}
+              </p>
+            </div>
+
+            {/* Progress Dots */}
+            <div className="flex justify-center gap-2 mt-6">
+              {tourSteps.map((_, i) => (
+                <motion.button
+                  key={i}
+                  onClick={() => setStep(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    i === step ? 'w-8 bg-indigo-500' : 'w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Navigation */}
+            <div className="flex items-center justify-between mt-6">
+              <button
+                onClick={() => setStep(s => Math.max(0, s - 1))}
+                disabled={step === 0}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (isLast) {
+                    onComplete();
+                  } else {
+                    setStep(s => s + 1);
+                  }
+                }}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg transition-all ${
+                  isLast 
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-emerald-500/30' 
+                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:shadow-indigo-500/30'
+                }`}
+              >
+                {isLast ? "Get Started" : "Next"} 
+                {isLast ? <Sparkles className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -55,10 +210,27 @@ export default function Home() {
   const [leaderboardPaper, setLeaderboardPaper] = useState("SCQP09");
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
-  
   const [currentRank, setCurrentRank] = useState(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  const [contributeForm, setContributeForm] = useState({ subjectCode: '', subjectName: '', contributorName: '', rawText: '' });
+  const [submittingContribution, setSubmittingContribution] = useState(false);
+
+  // Onboarding Tour State
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => { 
+    setMounted(true);
+    // Check if user has completed the tour before
+    const tourDone = localStorage.getItem('cuet_tour_completed');
+    if (!tourDone) {
+      setShowTour(true);
+    }
+  }, []);
+
+  const completeTour = useCallback(() => {
+    setShowTour(false);
+    localStorage.setItem('cuet_tour_completed', 'true');
+  }, []);
 
   useEffect(() => {
     if (activeTab === "leaderboard") {
@@ -126,6 +298,7 @@ export default function Home() {
       let totalAttempted = 0;
       let correctAnswers = 0;
       let incorrectAnswers = 0;
+      let answerKeyMissingCount = 0;
       const tableData = [];
       const currentAnswerKey = answerKeys[paper];
 
@@ -145,6 +318,7 @@ export default function Home() {
             }
           } else {
              evaluationStatus = "Answer Key Missing";
+             answerKeyMissingCount += 1;
           }
         }
 
@@ -156,19 +330,27 @@ export default function Home() {
 
       const accuracy = totalAttempted > 0 ? ((correctAnswers / totalAttempted) * 100).toFixed(0) : 0;
 
+      // Determine if there's a severe answer key mismatch (wrong subject selected)
+      const hasAnswerKeyMismatch = answerKeyMissingCount > (totalAttempted * 0.5);
+
       setResults({
-        candidateName, rollNumber, totalScore, totalAttempted, correctAnswers, incorrectAnswers, accuracy, tableData,
+        candidateName, rollNumber, totalScore, totalAttempted, correctAnswers, incorrectAnswers, accuracy, tableData, hasAnswerKeyMismatch, answerKeyMissingCount,
       });
 
-      toast.success(`Score Calculated: ${totalScore} XP`, { id: loadingToast });
+      if (hasAnswerKeyMismatch) {
+        toast.error(`⚠️ ${answerKeyMissingCount} questions have missing answer keys! You likely selected the WRONG paper. Score NOT saved to leaderboard.`, { id: loadingToast, duration: 8000 });
+      } else {
+        toast.success(`Score Calculated: ${totalScore} XP`, { id: loadingToast });
+      }
 
-      if (totalScore >= 200) {
+      if (totalScore >= 200 && !hasAnswerKeyMismatch) {
         setShowConfetti(true);
         toast('Incredible Performance! 🎉', { duration: 6000 });
         setTimeout(() => setShowConfetti(false), 8000);
       }
 
-      if (candidateName !== 'Unknown' && rollNumber !== 'Unknown') {
+      // Only save to DB if NO answer key mismatch detected AND valid data
+      if (candidateName !== 'Unknown' && rollNumber !== 'Unknown' && !hasAnswerKeyMismatch) {
         const bgSync = async () => {
            try {
               await fetch("/api/scores", {
@@ -192,6 +374,8 @@ export default function Home() {
            }
         };
         bgSync();
+      } else if (hasAnswerKeyMismatch) {
+        setCurrentRank('—');
       }
 
     } catch (err) {
@@ -201,13 +385,49 @@ export default function Home() {
     }
   };
 
+  const handleContribute = async (e) => {
+     e.preventDefault();
+     if (!contributeForm.subjectCode.trim() || !contributeForm.subjectName.trim() || !contributeForm.rawText.trim()) {
+       toast.error("Please fill in Subject Code, Name, and Raw Text!");
+       return;
+     }
+     setSubmittingContribution(true);
+     try {
+       const res = await fetch('/api/contribute', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           subject_code: contributeForm.subjectCode,
+           subject_name: contributeForm.subjectName,
+           contributor_name: contributeForm.contributorName,
+           raw_text: contributeForm.rawText
+         })
+       });
+       if (res.ok) {
+         toast.success("Thanks! Your key is under review.");
+         setContributeForm({ subjectCode: '', subjectName: '', contributorName: '', rawText: '' });
+       } else {
+         const data = await res.json();
+         toast.error("Failed to submit: " + (data.error || "Unknown error"));
+       }
+     } catch (err) {
+       toast.error("Error connecting to server.");
+     }
+     setSubmittingContribution(false);
+  };
+
   if (!mounted) return null; // Prevent Hydration Mismatch on Theme Switches
 
   return (
     <main className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-500 relative">
       
       {showConfetti && <Confetti recycle={false} numberOfPieces={800} gravity={0.25} /> }
-      
+
+      {/* Onboarding Tour Overlay */}
+      <AnimatePresence>
+        {showTour && <OnboardingTour onComplete={completeTour} />}
+      </AnimatePresence>
+
       {/* Theme Toggler */}
       <motion.button
         whileTap={{ scale: 0.9 }}
@@ -215,6 +435,16 @@ export default function Home() {
         className="absolute top-6 right-6 p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all z-50 text-slate-900 dark:text-slate-100"
       >
         {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </motion.button>
+
+      {/* Re-launch Tour Button */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowTour(true)}
+        title="Take a Tour"
+        className="absolute top-6 right-20 p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all z-50 text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400"
+      >
+        <HelpCircle className="w-5 h-5" />
       </motion.button>
 
       <div className="max-w-4xl mx-auto space-y-12 pb-20">
@@ -262,7 +492,20 @@ export default function Home() {
               {activeTab === 'leaderboard' && (
                 <motion.div layoutId="activeTab" className="absolute inset-0 bg-slate-900 dark:bg-slate-100 rounded-xl -z-10 shadow-md" />
               )}
-              <Hash className="h-4 w-4" /> Global Ranks
+              <Trophy className="h-4 w-4" /> Leaderboard
+            </motion.button>
+            
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setActiveTab('contribute')}
+              className={`relative z-10 flex-1 sm:flex-none px-8 py-3 rounded-xl text-sm font-bold tracking-wide transition-colors duration-200 flex items-center justify-center gap-2 ${
+                activeTab === 'contribute' ? 'text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              {activeTab === 'contribute' && (
+                <motion.div layoutId="activeTab" className="absolute inset-0 bg-slate-900 dark:bg-slate-100 rounded-xl -z-10 shadow-md" />
+              )}
+              <Upload className="h-4 w-4" /> Contribute
             </motion.button>
           </div>
         </div>
@@ -319,6 +562,27 @@ export default function Home() {
               {results && (
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100, damping: 20, staggerChildren: 0.1 }} className="space-y-6 relative">
                   
+                  {/* Answer Key Mismatch Warning Banner */}
+                  {results.hasAnswerKeyMismatch && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-300 dark:border-amber-500/30 rounded-2xl p-5 flex items-start gap-4"
+                    >
+                      <div className="bg-amber-100 dark:bg-amber-500/20 p-2.5 rounded-xl shrink-0">
+                        <XCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-amber-800 dark:text-amber-300 text-sm">⚠️ Wrong Paper Detected — Score NOT Saved</h4>
+                        <p className="text-amber-700 dark:text-amber-400/80 text-xs mt-1 leading-relaxed">
+                          {results.answerKeyMissingCount} out of {results.totalAttempted} answered questions have no matching answer key. 
+                          This usually means you selected the <strong>wrong paper code</strong> for your response sheet. 
+                          Please select the correct paper and recalculate. Your score was <strong>not submitted</strong> to the leaderboard to protect accuracy.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Ambient Lighting Behind Dashboard */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-indigo-500/10 dark:bg-indigo-500/20 blur-[100px] -z-10 rounded-full pointer-events-none" />
 
@@ -342,9 +606,13 @@ export default function Home() {
                     
                     <div className="ml-auto flex flex-col items-end relative z-10 mr-2 sm:mr-4">
                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1"><Trophy className="w-3 h-3"/> Global Rank</span>
-                       <div className="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 border border-yellow-300 dark:border-yellow-500/50 shadow-xl rounded-xl px-5 py-2 text-3xl font-black min-w-[70px] text-center flex items-center justify-center relative overflow-hidden group">
+                       <div className={`border shadow-xl rounded-xl px-5 py-2 text-3xl font-black min-w-[70px] text-center flex items-center justify-center relative overflow-hidden group ${
+                         results.hasAnswerKeyMismatch 
+                           ? 'bg-slate-200 text-slate-500 border-slate-300 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700' 
+                           : 'bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 border-yellow-300 dark:border-yellow-500/50'
+                       }`}>
                            <div className="absolute inset-0 bg-white/30 -translate-x-full group-hover:animate-[shimmer_1s_infinite] pointer-events-none" />
-                           {currentRank === null ? <Loader2 className="animate-spin h-6 w-6 text-yellow-800" /> : `#${currentRank}`}
+                           {results.hasAnswerKeyMismatch ? '—' : (currentRank === null ? <Loader2 className="animate-spin h-6 w-6 text-yellow-800" /> : `#${currentRank}`)}
                        </div>
                     </div>
                   </motion.div>
@@ -489,6 +757,7 @@ export default function Home() {
                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                           row.status === 'Correct' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
                                           row.status === 'Incorrect' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' :
+                                          row.status === 'Answer Key Missing' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' :
                                           'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                                        }`}>
                                           {row.status}
@@ -542,23 +811,31 @@ export default function Home() {
                       {leaderboardData.slice(0, 10).map((entry, idx) => (
                         <motion.div key={idx} variants={leaderboardItem} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-colors">
                           <div className="flex items-center gap-4">
-                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
-                              idx === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
-                              idx === 1 ? 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300' :
-                              idx === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' :
-                              'text-slate-400'
+                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full font-black text-sm ${
+                              idx === 0 ? 'bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-800 shadow-lg shadow-amber-200/50 dark:shadow-amber-500/20 ring-2 ring-amber-300/50' :
+                              idx === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-700 dark:from-slate-600 dark:to-slate-700 dark:text-slate-200 shadow-md' :
+                              idx === 2 ? 'bg-gradient-to-br from-orange-200 to-amber-300 text-orange-800 shadow-md' :
+                              'bg-slate-100 dark:bg-slate-800 text-slate-400'
                             }`}>
                               #{idx + 1}
                             </span>
                             <div>
                                <p className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                 Classified Scholar <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Top {idx + 1}</span>
+                                 Anonymous Scholar <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest font-black ${
+                                   idx === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
+                                   idx === 1 ? 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' :
+                                   idx === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' :
+                                   'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400'
+                                 }`}>Rank {idx + 1}</span>
                                </p>
-                               <p className="font-mono text-slate-500 text-[10px] tracking-wider mt-0.5">{maskRollNo(entry.rollNo)}</p>
+                               <p className="text-slate-400 dark:text-slate-500 text-[10px] tracking-wider mt-0.5 font-medium">
+                                 {entry.paper} • Score below
+                               </p>
                             </div>
                           </div>
-                          <div className="px-4 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-lg font-black dark:text-white">
-                            {entry.score}
+                          <div className="px-5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-xl font-black dark:text-white flex items-center gap-1.5">
+                            <BarChart3 className="w-4 h-4 text-indigo-400" />
+                            {entry.score} <span className="text-xs font-bold text-slate-400">XP</span>
                           </div>
                         </motion.div>
                       ))}
@@ -661,6 +938,60 @@ export default function Home() {
               </div>
             </motion.div>
           )}
+
+          {activeTab === 'contribute' && (
+            <motion.div
+              key="contribute"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800 shadow-2xl rounded-3xl p-6 sm:p-10"
+            >
+              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <div className="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 p-3 rounded-2xl">
+                  <Upload className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Contribute Key</h2>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Help expanding the calculator for upcoming subjects.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleContribute} className="space-y-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Subject Code *</label>
+                       <input required type="text" placeholder="e.g. COQP11" value={contributeForm.subjectCode} onChange={(e)=>setContributeForm({...contributeForm, subjectCode: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-800 outline-none p-4 rounded-xl focus:border-indigo-500 transition-colors placeholder:text-slate-400 font-medium" />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Subject Name *</label>
+                       <input required type="text" placeholder="e.g. Computer Science" value={contributeForm.subjectName} onChange={(e)=>setContributeForm({...contributeForm, subjectName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-800 outline-none p-4 rounded-xl focus:border-indigo-500 transition-colors placeholder:text-slate-400 font-medium" />
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Your Name <span className="opacity-50">(Optional for Credits)</span></label>
+                    <input type="text" placeholder="Your Name" value={contributeForm.contributorName} onChange={(e)=>setContributeForm({...contributeForm, contributorName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-800 outline-none p-4 rounded-xl focus:border-indigo-500 transition-colors placeholder:text-slate-400 font-medium" />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Raw NTA Key Content *</label>
+                    <textarea required placeholder="Paste all text from the NTA PDF here..." value={contributeForm.rawText} onChange={(e)=>setContributeForm({...contributeForm, rawText: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-800 outline-none p-4 rounded-xl focus:border-indigo-500 transition-colors placeholder:text-slate-400 font-medium h-48 resize-y" />
+                 </div>
+                 
+                 <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={submittingContribution}
+                    type="submit"
+                    className="w-full py-4 px-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold tracking-wide shadow-xl flex items-center justify-center gap-3 disabled:opacity-70"
+                  >
+                    {submittingContribution ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                    <span>{submittingContribution ? 'Submitting...' : 'Submit Contribution'}</span>
+                 </motion.button>
+              </form>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
       
