@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 // Create a fresh client per request to avoid stale connections
 function getSupabase() {
@@ -15,6 +17,9 @@ function getSupabase() {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
+    },
+    global: {
+      fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),
     },
   });
 }

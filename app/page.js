@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { parseResponseSheet } from "../lib/parser";
-import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle } from "lucide-react";
+import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle, RefreshCw } from "lucide-react";
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -215,6 +215,9 @@ export default function Home() {
   const [contributeForm, setContributeForm] = useState({ subjectCode: '', subjectName: '', contributorName: '', rawText: '' });
   const [submittingContribution, setSubmittingContribution] = useState(false);
 
+  // Auto-refresh interval ref
+  const refreshInterval = useRef(null);
+
   // Onboarding Tour State
   const [showTour, setShowTour] = useState(false);
 
@@ -235,11 +238,21 @@ export default function Home() {
   useEffect(() => {
     if (activeTab === "leaderboard") {
       fetchLeaderboard();
+      // Auto-poll every 15 seconds to keep data fresh
+      refreshInterval.current = setInterval(() => {
+        fetchLeaderboard(true); // silent fetch
+      }, 15000);
+    } else {
+      if (refreshInterval.current) clearInterval(refreshInterval.current);
     }
+    
+    return () => {
+      if (refreshInterval.current) clearInterval(refreshInterval.current);
+    };
   }, [activeTab, leaderboardPaper]);
 
-  const fetchLeaderboard = async () => {
-    setLoadingLeaderboard(true);
+  const fetchLeaderboard = async (silent = false) => {
+    if (!silent) setLoadingLeaderboard(true);
     try {
       const res = await fetch(`/api/leaderboard?paper=${leaderboardPaper}&t=${Date.now()}`, {
         cache: 'no-store',
@@ -249,12 +262,12 @@ export default function Home() {
       if (res.ok) {
         setLeaderboardData(data.leaderboard || []);
       } else {
-        toast.error("Failed to sync leaderboard: " + data.error);
+        if (!silent) toast.error("Failed to sync leaderboard: " + data.error);
       }
     } catch (err) {
-      toast.error("Networking error occurred.");
+      if (!silent) toast.error("Networking error occurred.");
     } finally {
-      setLoadingLeaderboard(false);
+      if (!silent) setLoadingLeaderboard(false);
     }
   };
 
@@ -363,6 +376,7 @@ export default function Home() {
               const rankData = await rankRes.json();
               
               if (rankRes.ok && rankData.leaderboard) {
+                 setLeaderboardData(rankData.leaderboard); // Update leaderboard instantly
                  const rankIndex = rankData.leaderboard.findIndex(r => r.rollNo === rollNumber);
                  setCurrentRank(rankIndex !== -1 ? rankIndex + 1 : 'N/A');
               } else {
@@ -776,23 +790,40 @@ export default function Home() {
             <motion.div key="leaderboard" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
               
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 shadow-sm rounded-3xl p-6 border border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                   <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                   <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl shrink-0">
                      <Trophy className="h-6 w-6 text-indigo-500" />
                    </div>
-                   <div>
+                   <div className="flex-1">
                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Rankings</h2>
-                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Supabase Multi-Region Sync Active</p>
+                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Live Multiplayer Sync Active</p>
                    </div>
+                   <button 
+                     onClick={() => fetchLeaderboard(false)}
+                     disabled={loadingLeaderboard}
+                     className="sm:hidden p-2 ml-auto text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 rounded-full active:scale-95 transition-transform"
+                   >
+                     <RefreshCw className={`w-5 h-5 ${loadingLeaderboard ? 'animate-spin' : ''}`} />
+                   </button>
                 </div>
-                <select
-                  value={leaderboardPaper}
-                  onChange={(e) => setLeaderboardPaper(e.target.value)}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 outline-none px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold cursor-pointer text-sm"
-                >
-                  <option value="SCQP09">Paper: SCQP09</option>
-                  <option value="MTQP04">Paper: MTQP04</option>
-                </select>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <select
+                    value={leaderboardPaper}
+                    onChange={(e) => setLeaderboardPaper(e.target.value)}
+                    className="flex-1 sm:flex-none rounded-xl border border-slate-200 dark:border-slate-700 outline-none px-4 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold cursor-pointer text-sm"
+                  >
+                    <option value="SCQP09">Paper: SCQP09</option>
+                    <option value="MTQP04">Paper: MTQP04</option>
+                  </select>
+                  <button 
+                    onClick={() => fetchLeaderboard(false)}
+                    disabled={loadingLeaderboard}
+                    className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm font-semibold text-slate-700 dark:text-slate-300 active:scale-95 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingLeaderboard ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[400px]">
