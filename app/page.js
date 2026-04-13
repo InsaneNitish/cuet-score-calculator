@@ -1397,7 +1397,7 @@ export default function Home() {
           <a href="https://github.com/InsaneNitish" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 shadow-sm transition-all group hover:-translate-y-1">
              <Github className="w-4 h-4 group-hover:scale-110 transition-transform" />
           </a>
-          <a href="https://linkedin.com/in/nitish-thakur" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800/80 shadow-sm transition-all group hover:-translate-y-1">
+          <a href="https://linkedin.com/in/code-sane" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800/80 shadow-sm transition-all group hover:-translate-y-1">
              <Linkedin className="w-4 h-4 group-hover:scale-110 transition-transform" />
           </a>
         </div>
