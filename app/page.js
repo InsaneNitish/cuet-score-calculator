@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { parseResponseSheet } from "../lib/parser";
-import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle, RefreshCw, ChevronDown, Palette } from "lucide-react";
+import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle, RefreshCw, ChevronDown, Palette, Github, Linkedin } from "lucide-react";
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -261,6 +261,263 @@ function CustomSelect({ value, onChange, options, label }) {
   );
 }
 
+const ParticleNetwork = ({ theme }) => {
+  useEffect(() => {
+    const canvas = document.getElementById('threads-canvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let particlesArray = [];
+    let planetsArray = [];
+    let meteorsArray = [];
+
+    const numberOfParticles = window.innerWidth > 768 ? 60 : 30;
+    const mouse = { x: null, y: null, radius: 150 };
+
+    const handleMouseMove = (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
+    class Particle {
+      constructor(x, y, dx, dy, size) {
+        this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.size = size;
+      }
+      update() {
+        this.x += this.dx;
+        this.y += this.dy;
+
+        if (this.x > canvas.width || this.x < 0) this.dx = -this.dx;
+        if (this.y > canvas.height || this.y < 0) this.dy = -this.dy;
+
+        // Physics calculation for repelling effect
+        let dx = mouse.x - this.x;
+        let dy = mouse.y - this.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < mouse.radius) {
+           const forceDirectionX = dx / distance;
+           const forceDirectionY = dy / distance;
+           const force = (mouse.radius - distance) / mouse.radius;
+           // Subtraction pushes particles aggressively AWAY from the cursor, breaking their connections
+           this.x -= forceDirectionX * force * 6;
+           this.y -= forceDirectionY * force * 6;
+        }
+      }
+    }
+
+    class PlanetParticle {
+       constructor(x, y, dx, dy, radius, color) {
+          this.x = x; this.y = y; this.dx = dx; this.dy = dy; 
+          this.radius = radius; 
+          this.color = color;
+       }
+       draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = this.color;
+          ctx.fill();
+          ctx.shadowBlur = 0; // reset
+       }
+       update(planets) {
+          // Boundaries
+          if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.dx = -this.dx;
+          if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.dy = -this.dy;
+
+          this.x += this.dx;
+          this.y += this.dy;
+
+          // Mouse repel for planets
+          let mdx = mouse.x - this.x;
+          let mdy = mouse.y - this.y;
+          let distance = Math.sqrt(mdx * mdx + mdy * mdy);
+          if (distance < mouse.radius * 1.5) {
+             const forceDirectionX = mdx / distance;
+             const forceDirectionY = mdy / distance;
+             const force = (mouse.radius * 1.5 - distance) / (mouse.radius * 1.5);
+             this.x -= forceDirectionX * force * 2;
+             this.y -= forceDirectionY * force * 2;
+          }
+
+          // Elastic collision with other planets
+          for (let i = 0; i < planets.length; i++) {
+             if (this === planets[i]) continue;
+             let pdx = this.x - planets[i].x;
+             let pdy = this.y - planets[i].y;
+             let pdistance = Math.sqrt(pdx * pdx + pdy * pdy);
+
+             if (pdistance < this.radius + planets[i].radius) {
+                let overlap = (this.radius + planets[i].radius) - pdistance;
+                // De-penetration
+                this.x += (pdx / pdistance) * overlap / 2;
+                this.y += (pdy / pdistance) * overlap / 2;
+                planets[i].x -= (pdx / pdistance) * overlap / 2;
+                planets[i].y -= (pdy / pdistance) * overlap / 2;
+                
+                // Swap velocities (elastic bounce of equal mass)
+                let tempDx = this.dx; let tempDy = this.dy;
+                this.dx = planets[i].dx; this.dy = planets[i].dy;
+                planets[i].dx = tempDx; planets[i].dy = tempDy;
+             }
+          }
+       }
+    }
+
+    class Meteor {
+       constructor() {
+           this.x = Math.random() * canvas.width * 1.5; 
+           this.y = -50;
+           this.dx = -((Math.random() * 5) + 8); 
+           this.dy = (Math.random() * 5) + 8;
+           this.length = Math.random() * 100 + 50;
+           this.opacity = Math.random() * 0.6 + 0.4;
+           this.thickness = Math.random() * 2 + 1.5;
+       }
+       draw() {
+           let tailX = this.x - this.dx * (this.length / 10);
+           let tailY = this.y - this.dy * (this.length / 10);
+           
+           let gradient = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
+           gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
+           gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+           
+           ctx.beginPath();
+           ctx.moveTo(this.x, this.y);
+           ctx.lineTo(tailX, tailY);
+           ctx.strokeStyle = gradient;
+           ctx.lineWidth = this.thickness;
+           ctx.lineCap = "round";
+           ctx.stroke();
+           
+           ctx.beginPath();
+           ctx.arc(this.x, this.y, this.thickness * 1.2, 0, Math.PI * 2);
+           ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+           ctx.shadowBlur = 10;
+           ctx.shadowColor = 'white';
+           ctx.fill();
+           ctx.shadowBlur = 0;
+       }
+       update() {
+           this.x += this.dx;
+           this.y += this.dy;
+       }
+    }
+
+    const init = () => {
+      particlesArray = [];
+      for (let i = 0; i < numberOfParticles; i++) {
+         let size = Math.random() * 1.5 + 0.5;
+         let x = Math.random() * innerWidth;
+         let y = Math.random() * innerHeight;
+         let dx = (Math.random() - 0.5) * 0.8;
+         let dy = (Math.random() - 0.5) * 0.8;
+         particlesArray.push(new Particle(x, y, dx, dy, size));
+      }
+
+      planetsArray = [];
+      const colors = [
+        'rgba(99, 102, 241, 0.4)', // indigo
+        'rgba(244, 63, 94, 0.4)',  // rose
+        'rgba(245, 158, 11, 0.4)', // amber
+        'rgba(16, 185, 129, 0.4)', // emerald
+        'rgba(168, 85, 247, 0.4)', // purple
+        'rgba(6, 182, 212, 0.4)',  // cyan
+      ];
+      for (let i = 0; i < colors.length; i++) {
+         let radius = Math.random() * 6 + 6;
+         let x = Math.random() * (canvas.width - radius * 2) + radius;
+         let y = Math.random() * (canvas.height - radius * 2) + radius;
+         let dx = (Math.random() - 0.5) * 2;
+         let dy = (Math.random() - 0.5) * 2;
+         planetsArray.push(new PlanetParticle(x, y, dx, dy, radius, colors[i]));
+      }
+    };
+
+    let meteorTimer = Date.now();
+
+    const connect = () => {
+      let opacityValue = 1;
+      for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a; b < particlesArray.length; b++) {
+           let dx = particlesArray[a].x - particlesArray[b].x;
+           let dy = particlesArray[a].y - particlesArray[b].y;
+           let distance = Math.sqrt(dx * dx + dy * dy);
+           if (distance < 120) {
+              opacityValue = 1 - (distance / 120);
+              const isDark = theme === 'dark' || theme === 'ocean' || theme === 'slatet' || theme === 'earthy';
+              ctx.strokeStyle = isDark
+                ? `rgba(167, 139, 250, ${opacityValue * 0.3})` 
+                : `rgba(79, 70, 229, ${opacityValue * 0.25})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+              ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+              ctx.stroke();
+           }
+        }
+      }
+    };
+
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      
+      for (let i = 0; i < particlesArray.length; i++) {
+         particlesArray[i].update();
+      }
+      connect();
+
+      for (let i = 0; i < planetsArray.length; i++) {
+         planetsArray[i].update(planetsArray);
+         planetsArray[i].draw();
+      }
+
+      if (Date.now() - meteorTimer > 6000) {
+         let count = Math.floor(Math.random() * 3) + 2;
+         for(let m=0; m<count; m++) {
+            setTimeout(() => {
+               meteorsArray.push(new Meteor());
+            }, Math.random() * 1500); 
+         }
+         meteorTimer = Date.now();
+      }
+
+      for (let i = meteorsArray.length - 1; i >= 0; i--) {
+          meteorsArray[i].update();
+          meteorsArray[i].draw();
+          if (meteorsArray[i].y > canvas.height + 100 || meteorsArray[i].x < -100) {
+             meteorsArray.splice(i, 1);
+          }
+      }
+    };
+
+    init();
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      init();
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [theme]);
+
+  return <canvas id="threads-canvas" className="fixed top-0 left-0 w-full h-full pointer-events-none z-[0] opacity-80 mix-blend-difference dark:mix-blend-screen"></canvas>;
+};
+
 export default function Home() {
   const { theme, setTheme } = useTheme();
   
@@ -272,6 +529,15 @@ export default function Home() {
   };
 
   const [mounted, setMounted] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const updateMousePosition = (e) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("mousemove", updateMousePosition);
+    return () => window.removeEventListener("mousemove", updateMousePosition);
+  }, []);
   
   const [activeTab, setActiveTab] = useState("calculator"); 
   const [paper, setPaper] = useState("SCQP09");
@@ -506,8 +772,18 @@ export default function Home() {
   if (!mounted) return null; // Prevent Hydration Mismatch on Theme Switches
 
   return (
-    <main className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-500 relative">
+    <main className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-500 relative overflow-hidden">
       
+      {/* Mouse Responsive Physics Threads & Planets */}
+      <ParticleNetwork theme={theme} />
+      {/* Animated Subtle Background Elements */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] rounded-full bg-indigo-500/10 blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-blob" />
+        <div className="absolute top-[20%] right-[-10%] w-[250px] h-[250px] sm:w-[400px] sm:h-[400px] rounded-full bg-purple-500/10 blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-2000" />
+        <div className="absolute bottom-[-20%] left-[20%] w-[350px] h-[350px] sm:w-[600px] sm:h-[600px] rounded-full bg-emerald-500/10 blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-4000" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:opacity-30 animate-grid" />
+      </div>
+
       {showConfetti && <Confetti recycle={false} numberOfPieces={800} gravity={0.25} /> }
 
       {/* Onboarding Tour Overlay */}
@@ -1113,8 +1389,18 @@ export default function Home() {
       </div>
       
       {/* Footer */}
-      <footer className="absolute bottom-4 left-0 right-0 text-center text-sm font-medium text-slate-400 dark:text-slate-500">
-        Made with ❤️ by <span className="font-bold text-slate-900 dark:text-slate-200 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-pointer">Nitish Thakur</span>
+      <footer className="w-full mt-0 mb-8 flex flex-col items-center justify-center gap-3 relative z-50">
+        <p className="text-sm font-medium text-slate-400 dark:text-slate-500">
+          Made with ❤️ by <span className="font-bold text-slate-900 dark:text-slate-200 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-pointer">Nitish Thakur</span>
+        </p>
+        <div className="flex items-center justify-center gap-4 relative z-50 pointer-events-auto">
+          <a href="https://github.com/InsaneNitish" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 shadow-sm transition-all group hover:-translate-y-1">
+             <Github className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </a>
+          <a href="https://linkedin.com/in/nitish-thakur" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800/80 shadow-sm transition-all group hover:-translate-y-1">
+             <Linkedin className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </a>
+        </div>
       </footer>
     </main>
   );

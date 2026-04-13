@@ -32,9 +32,23 @@ module.exports = {
           700: 'rgb(var(--color-indigo-700, 67 56 202) / <alpha-value>)',
         }
       },
+      animation: {
+        blob: "blob 7s infinite alternate",
+        grid: "grid 15s linear infinite",
+      },
       keyframes: {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
+        },
+        blob: {
+          "0%": { transform: "translate(0px, 0px) scale(1)" },
+          "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+          "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+          "100%": { transform: "translate(0px, 0px) scale(1)" }
+        },
+        grid: {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "24px 24px" }
         }
       }
     },
