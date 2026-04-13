@@ -14,5 +14,20 @@ export function ThemeProvider({ children, ...props }) {
     return <>{children}</>;
   }
 
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+  return (
+    <NextThemesProvider 
+      attribute="class"
+      themes={['light', 'dark', 'earthy', 'ocean', 'slatet']}
+      value={{
+        light: 'light',
+        dark: 'dark',
+        earthy: 'earthy',
+        ocean: 'ocean',
+        slatet: 'slatet'
+      }}
+      {...props}
+    >
+      {children}
+    </NextThemesProvider>
+  );
 }

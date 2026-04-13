@@ -16,6 +16,66 @@
   }
 }
 
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 2, 6, 23;
+}
+
+.earthy {
+  --foreground-rgb: 209, 232, 226;
+  --background-start-rgb: 17, 100, 102;
+  --background-end-rgb: 44, 53, 49;
+
+  --color-slate-950: 44 53 49;
+  --color-slate-900: 17 100 102;
+  --color-slate-800: 17 100 102;
+  --color-slate-100: 209 232 226;
+  --color-slate-200: 209 232 226;
+  --color-slate-400: 133 166 158;
+  --color-slate-500: 133 166 158;
+  
+  --color-indigo-400: 255 203 154;
+  --color-indigo-500: 255 203 154;
+  --color-indigo-600: 217 176 140;
+}
+
+.ocean {
+  --foreground-rgb: 175, 221, 229;
+  --background-start-rgb: 2, 73, 80;
+  --background-end-rgb: 0, 49, 53;
+
+  --color-slate-950: 0 49 53;
+  --color-slate-900: 2 73 80;
+  --color-slate-800: 2 73 80;
+  --color-slate-100: 175 221 229;
+  --color-slate-200: 175 221 229;
+  --color-slate-400: 122 176 186;
+  --color-slate-500: 122 176 186;
+  
+  --color-indigo-400: 15 164 175;
+  --color-indigo-500: 15 164 175;
+  --color-indigo-600: 150 71 52;
+}
+
+.slatet {
+  --foreground-rgb: 251, 233, 208;
+  --background-start-rgb: 36, 72, 85;
+  --background-end-rgb: 36, 72, 85;
+
+  --color-slate-950: 36 72 85;
+  --color-slate-900: 36 72 85;
+  --color-slate-800: 135 79 65;
+  --color-slate-100: 251 233 208;
+  --color-slate-200: 251 233 208;
+  --color-slate-400: 144 174 173;
+  --color-slate-500: 144 174 173;
+  
+  --color-indigo-400: 230 72 51;
+  --color-indigo-500: 230 72 51;
+  --color-indigo-600: 230 72 51;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(

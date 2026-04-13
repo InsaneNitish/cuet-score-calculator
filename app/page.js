@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { parseResponseSheet } from "../lib/parser";
-import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle, RefreshCw } from "lucide-react";
+import { Loader2, Calculator, Trophy, User, Hash, Check, Sun, Moon, Link as LinkIcon, CheckCircle2, XCircle, Upload, X, ArrowRight, ArrowLeft, Sparkles, Shield, BarChart3, HelpCircle, RefreshCw, ChevronDown, Palette } from "lucide-react";
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -196,8 +196,81 @@ function OnboardingTour({ onComplete }) {
   );
 }
 
+// ─── Custom Select Component ──────────────────────────────────────────────
+function CustomSelect({ value, onChange, options, label }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (selectRef.current && !selectRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+  return (
+    <div className="relative w-full sm:min-w-[220px]" ref={selectRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-3 bg-white dark:bg-slate-900 font-bold text-sm shadow-sm hover:border-indigo-500/50 transition-all dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20"
+      >
+        <div className="flex flex-col items-start text-left">
+          {label && <span className="text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">{label}</span>}
+          <span>{selectedOption.label}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden"
+          >
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`w-full text-left px-5 py-3 text-sm font-semibold transition-colors flex items-center gap-2 ${
+                  value === opt.value
+                    ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                }`}
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+              >
+                {value === opt.value ? <Check className="w-4 h-4 shrink-0" /> : <div className="w-4 h-4 shrink-0" />}
+                <span className="truncate">{opt.label}</span>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function Home() {
   const { theme, setTheme } = useTheme();
+  
+  const themesList = ['light', 'dark', 'earthy', 'ocean', 'slatet'];
+  const nextTheme = () => {
+    const currentIndex = themesList.indexOf(theme || 'light');
+    const nxt = (currentIndex + 1) % themesList.length;
+    setTheme(themesList[nxt]);
+  };
+
   const [mounted, setMounted] = useState(false);
   
   const [activeTab, setActiveTab] = useState("calculator"); 
@@ -353,7 +426,7 @@ export default function Home() {
       if (hasAnswerKeyMismatch) {
         toast.error(`⚠️ ${answerKeyMissingCount} questions have missing answer keys! You likely selected the WRONG paper. Score NOT saved to leaderboard.`, { id: loadingToast, duration: 8000 });
       } else {
-        toast.success(`Score Calculated: ${totalScore} XP`, { id: loadingToast });
+        toast.success(`Score Calculated: ${totalScore}`, { id: loadingToast });
       }
 
       if (totalScore >= 200 && !hasAnswerKeyMismatch) {
@@ -443,13 +516,20 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Theme Toggler */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        className="absolute top-6 right-6 p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all z-50 text-slate-900 dark:text-slate-100"
-      >
-        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </motion.button>
+      <div className="absolute top-6 right-6 z-50 flex flex-col items-center gap-1 group">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={nextTheme}
+          className="p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all text-slate-900 dark:text-slate-100"
+        >
+          {theme === 'light' ? <Sun className="w-5 h-5" /> : 
+           theme === 'dark' ? <Moon className="w-5 h-5" /> :
+           <Palette className="w-5 h-5" />}
+        </motion.button>
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] uppercase font-bold tracking-widest text-slate-500 absolute top-full mt-2 whitespace-nowrap bg-white dark:bg-slate-800 px-2 py-1 rounded shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-none">
+          {theme === 'earthy' ? 'Earthy Peach' : theme === 'ocean' ? 'Deep Ocean' : theme === 'slatet' ? 'Slate Orange' : theme} Mode
+        </span>
+      </div>
 
       {/* Re-launch Tour Button */}
       <motion.button
@@ -481,8 +561,8 @@ export default function Home() {
         </motion.div>
 
         {/* Tab Selection */}
-        <div className="flex justify-center">
-          <div className="bg-white dark:bg-slate-900 p-1.5 rounded-2xl inline-flex shadow-sm border border-slate-200 dark:border-slate-800 w-full sm:w-auto relative">
+        <div className="flex justify-center px-4 md:px-0">
+          <div className="bg-white dark:bg-slate-900 p-1.5 rounded-2xl flex flex-col sm:flex-row shadow-sm border border-slate-200 dark:border-slate-800 w-full sm:w-auto relative gap-2 sm:gap-0">
             <motion.button
               whileTap={{ scale: 0.96 }}
               onClick={() => setActiveTab('calculator')}
@@ -525,7 +605,7 @@ export default function Home() {
         </div>
 
         <AnimatePresence mode="wait">
-          {activeTab === 'calculator' ? (
+          {activeTab === 'calculator' && (
             <motion.div key="calc" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-8">
               
               {/* Premium Input Bento Card */}
@@ -537,14 +617,16 @@ export default function Home() {
                       <label className="text-sm font-bold tracking-wide dark:text-slate-200">Exam Architecture</label>
                       <p className="text-xs text-slate-500 mt-1">Select your exact paper routing key.</p>
                     </div>
-                    <select
-                      value={paper}
-                      onChange={(e) => setPaper(e.target.value)}
-                      className="rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 px-5 py-3 bg-white dark:bg-slate-900 font-bold cursor-pointer text-sm shadow-sm transition-all"
-                    >
-                      <option value="SCQP09">SCQP09 (CS/IT)</option>
-                      <option value="MTQP04">MTQP04 (Mathematics)</option>
-                    </select>
+                    <div className="z-20 w-full sm:w-auto">
+                      <CustomSelect
+                        value={paper}
+                        onChange={setPaper}
+                        options={[
+                          { value: "SCQP09", label: "SCQP09 (CS/IT)" },
+                          { value: "MTQP04", label: "MTQP04 (Mathematics)" }
+                        ]}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-3">
@@ -672,7 +754,7 @@ export default function Home() {
                       {/* Animated Grid Background */}
                       <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(255,255,255,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
                       
-                      <span className="font-black uppercase tracking-widest text-sm text-indigo-100 z-10 drop-shadow-md">Global XP Earned</span>
+                      <span className="font-black uppercase tracking-widest text-sm text-indigo-100 z-10 drop-shadow-md">Global Score</span>
                       <motion.h3 
                         initial={{ scale: 0.5, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -722,18 +804,18 @@ export default function Home() {
                        </div>
                        
                        {/* Granular Stats below Progress Bar */}
-                       <div className="flex justify-between items-center w-full px-4 z-10">
-                         <div className="flex flex-col items-center bg-emerald-50 dark:bg-emerald-500/10 px-6 py-3 rounded-2xl border border-emerald-100 dark:border-emerald-500/20">
-                            <span className="text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest text-[10px] mb-1">Correct</span>
-                            <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{results.correctAnswers}</span>
+                       <div className="flex justify-between items-center w-full px-1 sm:px-4 z-10 text-center">
+                         <div className="flex flex-col items-center bg-emerald-50 dark:bg-emerald-500/10 px-3 sm:px-6 py-3 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 flex-1 mx-1">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest text-[9px] sm:text-[10px] mb-1">Correct</span>
+                            <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">{results.correctAnswers}</span>
                          </div>
-                         <div className="flex flex-col items-center px-6 py-3">
-                            <span className="text-slate-400 font-black uppercase tracking-widest text-[10px] mb-1">Total</span>
-                            <span className="text-xl font-bold text-slate-500 dark:text-slate-400">{results.totalAttempted}</span>
+                         <div className="flex flex-col items-center px-2 sm:px-6 py-3">
+                            <span className="text-slate-400 font-black uppercase tracking-widest text-[9px] sm:text-[10px] mb-1">Total</span>
+                            <span className="text-lg sm:text-xl font-bold text-slate-500 dark:text-slate-400">{results.totalAttempted}</span>
                          </div>
-                         <div className="flex flex-col items-center bg-rose-50 dark:bg-rose-500/10 px-6 py-3 rounded-2xl border border-rose-100 dark:border-rose-500/20">
-                            <span className="text-rose-600 dark:text-rose-400 font-black uppercase tracking-widest text-[10px] mb-1">Incorrect</span>
-                            <span className="text-3xl font-black text-rose-600 dark:text-rose-400">{results.incorrectAnswers}</span>
+                         <div className="flex flex-col items-center bg-rose-50 dark:bg-rose-500/10 px-3 sm:px-6 py-3 rounded-2xl border border-rose-100 dark:border-rose-500/20 flex-1 mx-1">
+                            <span className="text-rose-600 dark:text-rose-400 font-black uppercase tracking-widest text-[9px] sm:text-[10px] mb-1">Incorrect</span>
+                            <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400">{results.incorrectAnswers}</span>
                          </div>
                        </div>
                     </motion.div>
@@ -786,7 +868,9 @@ export default function Home() {
                 </motion.div>
               )}
             </motion.div>
-          ) : (
+          )}
+
+          {activeTab === 'leaderboard' && (
             <motion.div key="leaderboard" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
               
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 shadow-sm rounded-3xl p-6 border border-slate-200 dark:border-slate-800">
@@ -806,15 +890,17 @@ export default function Home() {
                      <RefreshCw className={`w-5 h-5 ${loadingLeaderboard ? 'animate-spin' : ''}`} />
                    </button>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <select
-                    value={leaderboardPaper}
-                    onChange={(e) => setLeaderboardPaper(e.target.value)}
-                    className="flex-1 sm:flex-none rounded-xl border border-slate-200 dark:border-slate-700 outline-none px-4 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold cursor-pointer text-sm"
-                  >
-                    <option value="SCQP09">Paper: SCQP09</option>
-                    <option value="MTQP04">Paper: MTQP04</option>
-                  </select>
+                <div className="flex items-center gap-3 w-full sm:w-auto z-20">
+                  <div className="flex-1 sm:flex-none">
+                    <CustomSelect
+                      value={leaderboardPaper}
+                      onChange={setLeaderboardPaper}
+                      options={[
+                        { value: "SCQP09", label: "Paper: SCQP09" },
+                        { value: "MTQP04", label: "Paper: MTQP04" }
+                      ]}
+                    />
+                  </div>
                   <button 
                     onClick={() => fetchLeaderboard(false)}
                     disabled={loadingLeaderboard}
@@ -866,7 +952,7 @@ export default function Home() {
                           </div>
                           <div className="px-5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-xl font-black dark:text-white flex items-center gap-1.5">
                             <BarChart3 className="w-4 h-4 text-indigo-400" />
-                            {entry.score} <span className="text-xs font-bold text-slate-400">XP</span>
+                            {entry.score} <span className="text-xs font-bold text-slate-400">Score</span>
                           </div>
                         </motion.div>
                       ))}
@@ -892,15 +978,15 @@ export default function Home() {
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
                                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-2 block">Highest Score</span>
-                                   <span className="text-2xl font-black text-amber-500">{high} <span className="text-sm font-bold opacity-50 text-slate-500">XP</span></span>
+                                   <span className="text-2xl font-black text-amber-500">{high} <span className="text-sm font-bold opacity-50 text-slate-500">Score</span></span>
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
                                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-2 block">Top 10% Cutoff</span>
-                                   <span className="text-2xl font-black text-indigo-500">{top10PercentScore} <span className="text-sm font-bold opacity-50 text-slate-500">XP</span></span>
+                                   <span className="text-2xl font-black text-indigo-500">{top10PercentScore} <span className="text-sm font-bold opacity-50 text-slate-500">Score</span></span>
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
                                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-2 block">Average Score</span>
-                                   <span className="text-2xl font-black text-slate-800 dark:text-slate-100">{avg} <span className="text-sm font-bold opacity-50 text-slate-500">XP</span></span>
+                                   <span className="text-2xl font-black text-slate-800 dark:text-slate-100">{avg} <span className="text-sm font-bold opacity-50 text-slate-500">Score</span></span>
                                 </div>
                               </div>
                               
